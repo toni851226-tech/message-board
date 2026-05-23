@@ -1,10 +1,8 @@
 import httpx
 from datetime import datetime
-from config import RESEND_API_KEY, RECIPIENT_EMAIL
+from config import APPS_SCRIPT_URL, RECIPIENT_EMAIL
 
 SOURCE_LABELS = {"voice": "語音輸入", "text": "文字輸入"}
-
-RESEND_URL = "https://api.resend.com/emails"
 
 
 def send_message_email(sender_name: str, ai_content: str, source: str, created_at: datetime):
@@ -29,13 +27,11 @@ def send_message_email(sender_name: str, ai_content: str, source: str, created_a
 此郵件由辦公室留言系統自動發送"""
 
     response = httpx.post(
-        RESEND_URL,
-        headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
+        APPS_SCRIPT_URL,
         json={
-            "from": f"辦公室留言系統 <onboarding@resend.dev>",
-            "to": [RECIPIENT_EMAIL],
+            "to": RECIPIENT_EMAIL,
             "subject": subject,
-            "text": body,
+            "body": body,
         },
         timeout=30,
     )
