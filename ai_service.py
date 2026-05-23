@@ -1,8 +1,10 @@
-import google.generativeai as genai
+import httpx
 from config import GEMINI_API_KEY
 
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash")
+GEMINI_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/models/"
+    "gemini-1.5-flash:generateContent"
+)
 
 SOURCE_LABELS = {"voice": "語音輸入", "text": "文字輸入"}
 
@@ -16,5 +18,11 @@ def format_message(sender_name: str, content: str, source: str) -> str:
 留言方式：{source_label}
 原始內容：{content}"""
 
-    response = model.generate_content(prompt)
-    return response.text.strip()
+    response = httpx.post(
+        GEMINI_URL,
+        params={"key": GEMINI_API_KEY},
+        json={"contents": [{"parts": [{"text": prompt}]}]},
+        timeout=30,
+    )
+    response.raise_for_status()
+    return response.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
