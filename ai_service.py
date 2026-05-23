@@ -1,7 +1,8 @@
-import anthropic
-from config import CLAUDE_API_KEY
+import google.generativeai as genai
+from config import GEMINI_API_KEY
 
-client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 SOURCE_LABELS = {"voice": "語音輸入", "text": "文字輸入"}
 
@@ -15,9 +16,5 @@ def format_message(sender_name: str, content: str, source: str) -> str:
 留言方式：{source_label}
 原始內容：{content}"""
 
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return message.content[0].text.strip()
+    response = model.generate_content(prompt)
+    return response.text.strip()
