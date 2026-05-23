@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>請假留言板</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.10);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 560px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header .icon {
+      font-size: 48px;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+
+    .header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 6px;
+    }
+
+    .header p {
+      font-size: 16px;
+      color: #718096;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 15px;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 17px;
+      color: #1a202c;
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+      font-family: inherit;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus {
+      border-color: #4299e1;
+      background: #fff;
+    }
+
+    textarea {
+      height: 140px;
+      resize: none;
+      line-height: 1.6;
+    }
+
+    .voice-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .voice-row textarea {
+      flex: 1;
+    }
+
+    .voice-btn {
+      width: 60px;
+      min-width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      background: #ebf8ff;
+      color: #2b6cb0;
+      font-size: 26px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .voice-btn:active {
+      transform: scale(0.93);
+    }
+
+    .voice-btn.recording {
+      background: #fff5f5;
+      color: #e53e3e;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.3); }
+      50% { box-shadow: 0 0 0 12px rgba(229, 62, 62, 0); }
+    }
+
+    .voice-hint {
+      font-size: 13px;
+      color: #a0aec0;
+      margin-top: 6px;
+      text-align: center;
+    }
+
+    .voice-hint.active {
+      color: #e53e3e;
+      font-weight: 600;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      background: #3182ce;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s, transform 0.1s;
+      min-height: 56px;
+    }
+
+    .submit-btn:active {
+      transform: scale(0.98);
+    }
+
+    .submit-btn:disabled {
+      background: #bee3f8;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .error-msg {
+      background: #fff5f5;
+      color: #c53030;
+      border: 1px solid #fed7d7;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 15px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    /* 成功畫面 */
+    .success-screen {
+      display: none;
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .success-screen .check {
+      font-size: 72px;
+      margin-bottom: 16px;
+      animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes pop {
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .success-screen h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #276749;
+      margin-bottom: 8px;
+    }
+
+    .success-screen p {
+      font-size: 16px;
+      color: #718096;
+    }
+
+    .countdown {
+      display: inline-block;
+      margin-top: 24px;
+      font-size: 15px;
+      color: #a0aec0;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+
+    <!-- 留言表單 -->
+    <div id="form-screen">
+      <div class="header">
+        <div class="icon">📝</div>
+        <h1>請留言給 Tony</h1>
+        <p>目前不在辦公室，請留下您的訊息</p>
+      </div>
+
+      <div id="error-msg" class="error-msg"></div>
+
+      <div class="form-group">
+        <label for="name">您的姓名</label>
+        <input type="text" id="name" placeholder="請輸入您的姓名" autocomplete="off" />
+      </div>
+
+      <div class="form-group">
+        <label>留言內容</label>
+        <div class="voice-row">
+          <textarea id="message" placeholder="請輸入留言，或點擊右側麥克風用語音輸入…"></textarea>
+          <div>
+            <button class="voice-btn" id="voice-btn" title="語音輸入">🎤</button>
+            <div class="voice-hint" id="voice-hint">語音輸入</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="submit-btn" id="submit-btn" onclick="submitMessage()">送出留言</button>
+    </div>
+
+    <!-- 成功畫面 -->
+    <div id="success-screen" class="success-screen">
+      <div class="check">✅</div>
+      <h2>留言已送出！</h2>
+      <p>Tony 將會收到您的留言通知</p>
+      <div class="countdown" id="countdown">5 秒後自動返回…</div>
+    </div>
+
+  </div>
+
+  <script>
+    // ── 語音辨識 ──────────────────────────────────────────
+    const voiceBtn = document.getElementById('voice-btn');
+    const voiceHint = document.getElementById('voice-hint');
+    const messageArea = document.getElementById('message');
+    let recognition = null;
+    let isRecording = false;
+    let currentSource = 'text';
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.lang = 'zh-TW';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onresult = (e) => {
+        const transcript = e.results[0][0].transcript;
+        const prev = messageArea.value.trim();
+        messageArea.value = prev ? prev + '，' + transcript : transcript;
+        currentSource = 'voice';
+      };
+
+      recognition.onend = () => {
+        stopRecording();
+      };
+
+      recognition.onerror = (e) => {
+        stopRecording();
+        if (e.error !== 'no-speech') {
+          showError('語音辨識失敗，請改用文字輸入。（' + e.error + '）');
+        }
+      };
+
+      voiceBtn.addEventListener('click', () => {
+        if (isRecording) {
+          recognition.stop();
+        } else {
+          startRecording();
+        }
+      });
+    } else {
+      voiceBtn.style.opacity = '0.4';
+      voiceBtn.title = '此瀏覽器不支援語音輸入';
+      voiceBtn.disabled = true;
+      voiceHint.textContent = '不支援';
+    }
+
+    function startRecording() {
+      try {
+        recognition.start();
+        isRecording = true;
+        voiceBtn.classList.add('recording');
+        voiceBtn.textContent = '⏹';
+        voiceHint.textContent = '錄音中…';
+        voiceHint.classList.add('active');
+      } catch (err) {
+        showError('無法啟動語音，請確認已允許麥克風權限。');
+      }
+    }
+
+    function stopRecording() {
+      isRecording = false;
+      voiceBtn.classList.remove('recording');
+      voiceBtn.textContent = '🎤';
+      voiceHint.textContent = '語音輸入';
+      voiceHint.classList.remove('active');
+    }
+
+    // 若用文字輸入，來源切回 text
+    messageArea.addEventListener('input', () => {
+      if (!isRecording) currentSource = 'text';
+    });
+
+    // ── 送出留言 ──────────────────────────────────────────
+    async function submitMessage() {
+      const name = document.getElementById('name').value.trim();
+      const content = messageArea.value.trim();
+
+      if (!name) { showError('請填寫您的姓名'); return; }
+      if (!content) { showError('請填寫留言內容'); return; }
+
+      hideError();
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = '送出中…';
+
+      try {
+        const res = await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sender_name: name, content, source: currentSource }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.detail || '送出失敗，請再試一次。');
+        }
+
+        showSuccess();
+      } catch (err) {
+        showError(err.message || '網路錯誤，請再試一次。');
+        btn.disabled = false;
+        btn.textContent = '送出留言';
+      }
+    }
+
+    // ── 成功畫面 ──────────────────────────────────────────
+    function showSuccess() {
+      document.getElementById('form-screen').style.display = 'none';
+      document.getElementById('success-screen').style.display = 'block';
+
+      let sec = 5;
+      const countdownEl = document.getElementById('countdown');
+      const timer = setInterval(() => {
+        sec--;
+        countdownEl.textContent = sec + ' 秒後自動返回…';
+        if (sec <= 0) {
+          clearInterval(timer);
+          resetForm();
+        }
+      }, 1000);
+    }
+
+    function resetForm() {
+      document.getElementById('name').value = '';
+      messageArea.value = '';
+      currentSource = 'text';
+      document.getElementById('submit-btn').disabled = false;
+      document.getElementById('submit-btn').textContent = '送出留言';
+      document.getElementById('success-screen').style.display = 'none';
+      document.getElementById('form-screen').style.display = 'block';
+    }
+
+    // ── 錯誤提示 ──────────────────────────────────────────
+    function showError(msg) {
+      const el = document.getElementById('error-msg');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    function hideError() {
+      document.getElementById('error-msg').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
