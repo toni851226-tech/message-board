@@ -34,5 +34,6 @@ def send_message_email(sender_name: str, ai_content: str, source: str, created_a
             "body": body,
         },
         timeout=30,
+        follow_redirects=True,
     )
     response.raise_for_status()
