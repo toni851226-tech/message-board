@@ -1,10 +1,10 @@
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import httpx
 from datetime import datetime
-from config import GMAIL_USER, GMAIL_APP_PASSWORD, RECIPIENT_EMAIL
+from config import RESEND_API_KEY, RECIPIENT_EMAIL
 
 SOURCE_LABELS = {"voice": "語音輸入", "text": "文字輸入"}
+
+RESEND_URL = "https://api.resend.com/emails"
 
 
 def send_message_email(sender_name: str, ai_content: str, source: str, created_at: datetime):
@@ -28,13 +28,15 @@ def send_message_email(sender_name: str, ai_content: str, source: str, created_a
 ──────────────────────
 此郵件由辦公室留言系統自動發送"""
 
-    msg = MIMEMultipart()
-    msg["From"] = GMAIL_USER
-    msg["To"] = RECIPIENT_EMAIL
-    msg["Subject"] = subject
-    msg.attach(MIMEText(body, "plain", "utf-8"))
-
-    with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as server:
-        server.starttls()
-        server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
-        server.sendmail(GMAIL_USER, RECIPIENT_EMAIL, msg.as_string())
+    response = httpx.post(
+        RESEND_URL,
+        headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
+        json={
+            "from": f"辦公室留言系統 <onboarding@resend.dev>",
+            "to": [RECIPIENT_EMAIL],
+            "subject": subject,
+            "text": body,
+        },
+        timeout=30,
+    )
+    response.raise_for_status()
