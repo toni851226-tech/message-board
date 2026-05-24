@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>請假留言板</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="留言給思賢" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>請留言給思賢</title>
   <style>
     * {
       box-sizing: border-box;
@@ -52,6 +56,50 @@
     .header p {
       font-size: 16px;
       color: #718096;
+    }
+
+    .instructions {
+      background: #ebf8ff;
+      border-left: 4px solid #4299e1;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      font-size: 15px;
+      color: #2c5282;
+      line-height: 1.7;
+    }
+
+    .instructions ol {
+      margin: 0;
+      padding-left: 22px;
+    }
+
+    .instructions li {
+      margin-bottom: 2px;
+    }
+
+    .fullscreen-btn {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+      color: #4a5568;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: transform 0.1s;
+    }
+
+    .fullscreen-btn:active {
+      transform: scale(0.92);
     }
 
     .form-group {
@@ -223,14 +271,24 @@
   </style>
 </head>
 <body>
+  <button class="fullscreen-btn" id="fullscreen-btn" onclick="toggleFullscreen()" title="全螢幕">⛶</button>
+
   <div class="card">
 
     <!-- 留言表單 -->
     <div id="form-screen">
       <div class="header">
         <div class="icon">📝</div>
-        <h1>請留言給 Tony</h1>
+        <h1>請留言給思賢</h1>
         <p>目前不在辦公室，請留下您的訊息</p>
+      </div>
+
+      <div class="instructions">
+        <ol>
+          <li>填寫您的<strong>姓名</strong></li>
+          <li>輸入<strong>留言內容</strong>（也可點 🎤 用語音輸入）</li>
+          <li>按下<strong>「送出留言」</strong>，思賢將立即收到通知</li>
+        </ol>
       </div>
 
       <div id="error-msg" class="error-msg"></div>
@@ -370,6 +428,44 @@
         btn.disabled = false;
         btn.textContent = '送出留言';
       }
+    }
+
+    // ── 全螢幕模式 ────────────────────────────────────────
+    function toggleFullscreen() {
+      const doc = document;
+      const el = document.documentElement;
+      const isFs = doc.fullscreenElement || doc.webkitFullscreenElement;
+
+      if (!isFs) {
+        if (el.requestFullscreen) {
+          el.requestFullscreen();
+        } else if (el.webkitRequestFullscreen) {
+          el.webkitRequestFullscreen();
+        } else {
+          // iOS Safari 不支援 Fullscreen API → 提示加入主畫面
+          alert('iPad Safari 請點底部分享 ⬆ →「加入主畫面」，再從主畫面開啟即可全螢幕。');
+        }
+      } else {
+        if (doc.exitFullscreen) {
+          doc.exitFullscreen();
+        } else if (doc.webkitExitFullscreen) {
+          doc.webkitExitFullscreen();
+        }
+      }
+    }
+
+    // 進入全螢幕後更新按鈕圖示
+    function updateFsIcon() {
+      const isFs = document.fullscreenElement || document.webkitFullscreenElement;
+      document.getElementById('fullscreen-btn').textContent = isFs ? '⛶' : '⛶';
+    }
+    document.addEventListener('fullscreenchange', updateFsIcon);
+    document.addEventListener('webkitfullscreenchange', updateFsIcon);
+
+    // 若從主畫面以 standalone 模式開啟（iPad 已加入主畫面），自動隱藏全螢幕按鈕
+    if (window.navigator.standalone === true ||
+        window.matchMedia('(display-mode: standalone)').matches) {
+      document.getElementById('fullscreen-btn').style.display = 'none';
     }
 
     // ── 成功畫面 ──────────────────────────────────────────
