@@ -141,61 +141,6 @@
       line-height: 1.6;
     }
 
-    .voice-row {
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-    }
-
-    .voice-row textarea {
-      flex: 1;
-    }
-
-    .voice-btn {
-      width: 60px;
-      min-width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      border: none;
-      background: #ebf8ff;
-      color: #2b6cb0;
-      font-size: 26px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.2s, transform 0.1s;
-      margin-top: 4px;
-      flex-shrink: 0;
-    }
-
-    .voice-btn:active {
-      transform: scale(0.93);
-    }
-
-    .voice-btn.recording {
-      background: #fff5f5;
-      color: #e53e3e;
-      animation: pulse 1.2s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.3); }
-      50% { box-shadow: 0 0 0 12px rgba(229, 62, 62, 0); }
-    }
-
-    .voice-hint {
-      font-size: 13px;
-      color: #a0aec0;
-      margin-top: 6px;
-      text-align: center;
-    }
-
-    .voice-hint.active {
-      color: #e53e3e;
-      font-weight: 600;
-    }
-
     .submit-btn {
       width: 100%;
       padding: 16px;
@@ -286,7 +231,7 @@
       <div class="instructions">
         <ol>
           <li>填寫您的<strong>姓名</strong></li>
-          <li>輸入<strong>留言內容</strong>（也可點 🎤 用語音輸入）</li>
+          <li>輸入<strong>留言內容</strong>（iPad 鍵盤右下角可使用🎤語音輸入）</li>
           <li>按下<strong>「送出留言」</strong>，思賢將立即收到通知</li>
         </ol>
       </div>
@@ -299,14 +244,8 @@
       </div>
 
       <div class="form-group">
-        <label>留言內容</label>
-        <div class="voice-row">
-          <textarea id="message" placeholder="請輸入留言，或點擊右側麥克風用語音輸入…"></textarea>
-          <div>
-            <button class="voice-btn" id="voice-btn" title="語音輸入">🎤</button>
-            <div class="voice-hint" id="voice-hint">語音輸入</div>
-          </div>
-        </div>
+        <label for="message">留言內容</label>
+        <textarea id="message" placeholder="請在此輸入留言內容…"></textarea>
       </div>
 
       <button class="submit-btn" id="submit-btn" onclick="submitMessage()">送出留言</button>
@@ -316,88 +255,88 @@
     <div id="success-screen" class="success-screen">
       <div class="check">✅</div>
       <h2>留言已送出！</h2>
-      <p>Tony 將會收到您的留言通知</p>
+      <p>思賢將會收到您的留言通知</p>
       <div class="countdown" id="countdown">5 秒後自動返回…</div>
     </div>
 
   </div>
 
   <script>
-    // ── 語音辨識 ──────────────────────────────────────────
-    const voiceBtn = document.getElementById('voice-btn');
-    const voiceHint = document.getElementById('voice-hint');
-    const messageArea = document.getElementById('message');
-    let recognition = null;
-    let isRecording = false;
-    let currentSource = 'text';
+    // ── 螢幕常亮（Wake Lock） ────────────────────────────────
+    let wakeLock = null;
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    if (SpeechRecognition) {
-      recognition = new SpeechRecognition();
-      recognition.lang = 'zh-TW';
-      recognition.continuous = false;
-      recognition.interimResults = false;
-
-      recognition.onresult = (e) => {
-        const transcript = e.results[0][0].transcript;
-        const prev = messageArea.value.trim();
-        messageArea.value = prev ? prev + '，' + transcript : transcript;
-        currentSource = 'voice';
-      };
-
-      recognition.onend = () => {
-        stopRecording();
-      };
-
-      recognition.onerror = (e) => {
-        stopRecording();
-        if (e.error !== 'no-speech') {
-          showError('語音辨識失敗，請改用文字輸入。（' + e.error + '）');
-        }
-      };
-
-      voiceBtn.addEventListener('click', () => {
-        if (isRecording) {
-          recognition.stop();
-        } else {
-          startRecording();
-        }
-      });
-    } else {
-      voiceBtn.style.opacity = '0.4';
-      voiceBtn.title = '此瀏覽器不支援語音輸入';
-      voiceBtn.disabled = true;
-      voiceHint.textContent = '不支援';
-    }
-
-    function startRecording() {
+    async function requestWakeLock() {
+      if (!('wakeLock' in navigator)) return;
       try {
-        recognition.start();
-        isRecording = true;
-        voiceBtn.classList.add('recording');
-        voiceBtn.textContent = '⏹';
-        voiceHint.textContent = '錄音中…';
-        voiceHint.classList.add('active');
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { wakeLock = null; });
       } catch (err) {
-        showError('無法啟動語音，請確認已允許麥克風權限。');
+        console.warn('Wake Lock 取得失敗：', err);
       }
     }
 
-    function stopRecording() {
-      isRecording = false;
-      voiceBtn.classList.remove('recording');
-      voiceBtn.textContent = '🎤';
-      voiceHint.textContent = '語音輸入';
-      voiceHint.classList.remove('active');
-    }
-
-    // 若用文字輸入，來源切回 text
-    messageArea.addEventListener('input', () => {
-      if (!isRecording) currentSource = 'text';
+    // 頁面切回前景時自動重新取得（系統會在背景時釋放）
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && shouldKeepAwake()) {
+        requestWakeLock();
+      }
     });
 
+    function shouldKeepAwake() {
+      return !!document.fullscreenElement ||
+             !!document.webkitFullscreenElement ||
+             window.navigator.standalone === true ||
+             window.matchMedia('(display-mode: standalone)').matches;
+    }
+
+    // 一進入頁面就嘗試取得（若已在 standalone 模式下開啟，例如從主畫面開啟）
+    if (shouldKeepAwake()) requestWakeLock();
+
+    // ── 全螢幕模式 ────────────────────────────────────────
+    function toggleFullscreen() {
+      const doc = document;
+      const el = document.documentElement;
+      const isFs = doc.fullscreenElement || doc.webkitFullscreenElement;
+
+      if (!isFs) {
+        if (el.requestFullscreen) {
+          el.requestFullscreen().then(requestWakeLock);
+        } else if (el.webkitRequestFullscreen) {
+          el.webkitRequestFullscreen();
+          requestWakeLock();
+        } else {
+          // iOS Safari 不支援 Fullscreen API，而且 Fullscreen API 在輸入時會被打斷
+          // 唯一不會被中斷的「全螢幕」是「加入主畫面」standalone 模式
+          alert(
+            'iPad 全螢幕請依下列步驟：\n\n' +
+            '1. 點 Safari 底部分享 ⬆ 按鈕\n' +
+            '2. 選「加入主畫面」\n' +
+            '3. 從主畫面開啟即為全螢幕\n\n' +
+            '此模式下鍵盤輸入不會跳出，螢幕也會保持常亮。'
+          );
+        }
+      } else {
+        if (doc.exitFullscreen) doc.exitFullscreen();
+        else if (doc.webkitExitFullscreen) doc.webkitExitFullscreen();
+      }
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+      if (document.fullscreenElement) requestWakeLock();
+    });
+    document.addEventListener('webkitfullscreenchange', () => {
+      if (document.webkitFullscreenElement) requestWakeLock();
+    });
+
+    // 若已在 standalone 模式（從主畫面開啟），隱藏全螢幕按鈕
+    if (window.navigator.standalone === true ||
+        window.matchMedia('(display-mode: standalone)').matches) {
+      document.getElementById('fullscreen-btn').style.display = 'none';
+    }
+
     // ── 送出留言 ──────────────────────────────────────────
+    const messageArea = document.getElementById('message');
+
     async function submitMessage() {
       const name = document.getElementById('name').value.trim();
       const content = messageArea.value.trim();
@@ -414,7 +353,7 @@
         const res = await fetch('/api/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sender_name: name, content, source: currentSource }),
+          body: JSON.stringify({ sender_name: name, content, source: 'text' }),
         });
 
         if (!res.ok) {
@@ -428,44 +367,6 @@
         btn.disabled = false;
         btn.textContent = '送出留言';
       }
-    }
-
-    // ── 全螢幕模式 ────────────────────────────────────────
-    function toggleFullscreen() {
-      const doc = document;
-      const el = document.documentElement;
-      const isFs = doc.fullscreenElement || doc.webkitFullscreenElement;
-
-      if (!isFs) {
-        if (el.requestFullscreen) {
-          el.requestFullscreen();
-        } else if (el.webkitRequestFullscreen) {
-          el.webkitRequestFullscreen();
-        } else {
-          // iOS Safari 不支援 Fullscreen API → 提示加入主畫面
-          alert('iPad Safari 請點底部分享 ⬆ →「加入主畫面」，再從主畫面開啟即可全螢幕。');
-        }
-      } else {
-        if (doc.exitFullscreen) {
-          doc.exitFullscreen();
-        } else if (doc.webkitExitFullscreen) {
-          doc.webkitExitFullscreen();
-        }
-      }
-    }
-
-    // 進入全螢幕後更新按鈕圖示
-    function updateFsIcon() {
-      const isFs = document.fullscreenElement || document.webkitFullscreenElement;
-      document.getElementById('fullscreen-btn').textContent = isFs ? '⛶' : '⛶';
-    }
-    document.addEventListener('fullscreenchange', updateFsIcon);
-    document.addEventListener('webkitfullscreenchange', updateFsIcon);
-
-    // 若從主畫面以 standalone 模式開啟（iPad 已加入主畫面），自動隱藏全螢幕按鈕
-    if (window.navigator.standalone === true ||
-        window.matchMedia('(display-mode: standalone)').matches) {
-      document.getElementById('fullscreen-btn').style.display = 'none';
     }
 
     // ── 成功畫面 ──────────────────────────────────────────
@@ -488,7 +389,6 @@
     function resetForm() {
       document.getElementById('name').value = '';
       messageArea.value = '';
-      currentSource = 'text';
       document.getElementById('submit-btn').disabled = false;
       document.getElementById('submit-btn').textContent = '送出留言';
       document.getElementById('success-screen').style.display = 'none';
