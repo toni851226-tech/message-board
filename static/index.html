@@ -262,6 +262,13 @@
   </div>
 
   <script>
+    // ── 保持伺服器常駐（防 Render 冷啟動） ────────────────────
+    async function pingServer() {
+      try { await fetch('/api/health'); } catch (e) {}
+    }
+    pingServer(); // 頁面載入時立刻 ping，喚醒伺服器
+    setInterval(pingServer, 4 * 60 * 1000); // 之後每 4 分鐘 ping 一次
+
     // ── 螢幕常亮（Wake Lock） ────────────────────────────────
     let wakeLock = null;
 

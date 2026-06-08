@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -7,6 +7,8 @@ from pydantic import BaseModel
 from database import init_db, save_message, update_ai_content
 from ai_service import format_message
 from email_service import send_message_email
+
+TAIWAN_TZ = timezone(timedelta(hours=8))
 
 app = FastAPI()
 
@@ -33,9 +35,14 @@ async def create_message(req: MessageRequest):
     ai_content = format_message(req.sender_name.strip(), req.content.strip(), req.source)
     update_ai_content(message_id, ai_content)
 
-    now = datetime.now()
+    now = datetime.now(tz=TAIWAN_TZ)
     send_message_email(req.sender_name.strip(), ai_content, req.source, now)
 
+    return {"status": "ok"}
+
+
+@app.get("/api/health")
+async def health():
     return {"status": "ok"}
 
 
