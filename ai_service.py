@@ -9,7 +9,7 @@ GEMINI_URL = (
 SOURCE_LABELS = {"voice": "語音輸入", "text": "文字輸入"}
 
 
-def format_message(sender_name: str, content: str, source: str) -> str:
+async def format_message(sender_name: str, content: str, source: str) -> str:
     """呼叫 Gemini 整理留言；遇到 429（quota 用完）或其他錯誤時直接回傳原始內容。"""
     source_label = SOURCE_LABELS.get(source, source)
     prompt = f"""你是一個辦公室留言助理。訪客在員工請假期間留下以下留言（可能來自語音辨識，有錯字或語句不順）。
@@ -20,12 +20,13 @@ def format_message(sender_name: str, content: str, source: str) -> str:
 原始內容：{content}"""
 
     try:
-        response = httpx.post(
-            GEMINI_URL,
-            params={"key": GEMINI_API_KEY},
-            json={"contents": [{"parts": [{"text": prompt}]}]},
-            timeout=30,
-        )
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                GEMINI_URL,
+                params={"key": GEMINI_API_KEY},
+                json={"contents": [{"parts": [{"text": prompt}]}]},
+                timeout=30,
+            )
         if response.status_code == 429:
             # Gemini 免費配額已用完，直接回傳原始留言（不影響收信）
             return content

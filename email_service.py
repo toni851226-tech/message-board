@@ -8,7 +8,7 @@ TPE = timezone(timedelta(hours=8))
 logger = logging.getLogger(__name__)
 
 
-def send_message_email(sender_name: str, ai_content: str, source: str, created_at: datetime):
+async def send_message_email(sender_name: str, ai_content: str, source: str, created_at: datetime):
     source_label = SOURCE_LABELS.get(source, source)
     # 確保以台灣時間（UTC+8）顯示，無論傳入的是 naive UTC 還是有時區的 datetime
     if created_at.tzinfo is None:
@@ -36,15 +36,16 @@ def send_message_email(sender_name: str, ai_content: str, source: str, created_a
 
     logger.info("Sending email via GAS url=...%s to=%s subject=%s",
                 APPS_SCRIPT_URL[-20:], RECIPIENT_EMAIL, subject)
-    response = httpx.post(
-        APPS_SCRIPT_URL,
-        json={
-            "to": RECIPIENT_EMAIL,
-            "subject": subject,
-            "body": body,
-        },
-        timeout=30,
-        follow_redirects=True,
-    )
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            APPS_SCRIPT_URL,
+            json={
+                "to": RECIPIENT_EMAIL,
+                "subject": subject,
+                "body": body,
+            },
+            timeout=30,
+            follow_redirects=True,
+        )
     logger.info("GAS response status: %s, body: %s", response.status_code, response.text[:200])
     response.raise_for_status()
